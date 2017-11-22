@@ -18,18 +18,20 @@ func cleanStr(str *string) {
 	*str = strings.Replace(*str, "\t", "", -1)
 }
 
-func getBody(url string) string {
+func getBody(url string, result chan string) {
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-	return string(body)
+	result <- string(body)
 }
 
 func main() {
-	str := getBody("http://lauftechnik.de/")
+	result := make(chan string)
+	go getBody("http://lauftechnik.de/", result)
+	str := <-result
 	cleanStr(&str)
 	words := strings.Split(str, " ")
 	for _, word := range words {
