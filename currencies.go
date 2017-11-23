@@ -2,7 +2,7 @@ package main
 
 // From https://github.com/bengourley/currency-symbol-map/blob/master/map.js
 
-// Currencies is a list of symbols of currencies
+// Currencies is a list of currencies
 var Currencies = map[string]string{
 	"AED": "د.إ",
 	"AFN": "؋",
