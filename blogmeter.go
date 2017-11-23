@@ -1,4 +1,4 @@
-package blogmeter
+package main
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/grokify/html-strip-tags-go"
 	"mvdan.cc/xurls"
@@ -191,20 +192,23 @@ func cleanStr(str *string) {
 	*str = strings.Replace(*str, "\t", "", -1)
 }
 
-func getBody(url string, result chan string) {
+func getBody(url string, result chan string, wg *sync.WaitGroup) {
 	resp, err := http.Get(url)
+	var output string
 	if err != nil {
-		result <- " "
+		output = " "
 	} else {
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
-		result <- string(body)
+		output = string(body)
 	}
+	result <- output
+	wg.Done()
 }
 
 func hasPrice(body string) bool {
 	baseExp := `\s?\d+\.?\,?\d+`
-	for currency, symbol := range Currencies {
+	for currency, symbol := range currencies {
 		currencyRe := regexp.MustCompile(currency + baseExp)
 		var prefix string
 		if symbol == `$` {
@@ -222,41 +226,35 @@ func hasPrice(body string) bool {
 	return false
 }
 
-func resolveUrls(urls []string, countChan chan int) {
+func resolveUrls(urls []string) int {
 	var count = 0
-	// var wg sync.WaitGroup
+	var wg sync.WaitGroup
 	resultsChan := make(chan string, len(urls))
 	for _, url := range urls {
 		fmt.Println(url)
-		// wg.Add(1)
-		go getBody(url, resultsChan)
-		body := <-resultsChan
+		wg.Add(1)
+		go getBody(url, resultsChan, &wg)
+	}
+	wg.Wait()
+	for body := range resultsChan {
+		fmt.Println(len(resultsChan), cap(resultsChan))
+		fmt.Println(count)
 		if hasPrice(body) {
 			count++
 		}
 	}
-	// wg.Wait()
-	// for body := range resultsChan {
-	// 	fmt.Println(len(resultsChan), cap(resultsChan))
-	// 	if hasPrice(body) {
-	// 		count++
-	// 	}
-	// }
-	countChan <- count
+	return count
 }
 
 func main() {
-	result := make(chan string)
-	// var wg sync.WaitGroup
-	// wg.Add(1)
-	go getBody("http://lauftechnik.de/", result)
-	// wg.Wait()
+	result := make(chan string, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go getBody("http://lauftechnik.de/", result, &wg)
+	wg.Wait()
 	str := <-result
 	urls := xurls.Relaxed().FindAllString(str, -1)
-	countChan := make(chan int)
-	// fmt.Println(urls)
-	go resolveUrls(urls, countChan)
-	count := <-countChan
+	count := resolveUrls(urls)
 	fmt.Println("count", count)
 	cleanStr(&str)
 	words := strings.Split(str, " ")
