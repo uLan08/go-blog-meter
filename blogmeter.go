@@ -238,13 +238,24 @@ func resolveUrls(urls []string) int {
 	wg.Wait()
 	close(resultsChan)
 	for body := range resultsChan {
-		fmt.Println(len(resultsChan), cap(resultsChan))
-		fmt.Println(count)
 		if hasPrice(body) {
 			count++
 		}
 	}
 	return count
+}
+
+func uniqueSlice(slc []string) []string {
+	copy := make([]string, 0, len(slc))
+	set := make(map[string]struct{})
+
+	for _, val := range slc {
+		if _, ok := set[val]; !ok {
+			set[val] = struct{}{}
+			copy = append(copy, val)
+		}
+	}
+	return copy
 }
 
 func main() {
@@ -255,17 +266,10 @@ func main() {
 	wg.Wait()
 	str := <-result
 	urls := xurls.Relaxed().FindAllString(str, -1)
-	count := resolveUrls(urls)
-	fmt.Println("count", count)
+	uniqueUrls := uniqueSlice(urls)
+	count := resolveUrls(uniqueUrls)
 	cleanStr(&str)
 	words := strings.Split(str, " ")
-	fmt.Println(len(words))
-	// for _, word := range words {
-	// 	fmt.Println(word)
-	// }
-
-	// fmt.Println(words, len(words))
-	// for _, url := range urls {
-	// 	fmt.Println(url)
-	// }
+	fmt.Println("Links:", count)
+	fmt.Println("Words:", len(words))
 }
