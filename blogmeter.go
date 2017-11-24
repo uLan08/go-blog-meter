@@ -236,6 +236,7 @@ func resolveUrls(urls []string) int {
 		go getBody(url, resultsChan, &wg)
 	}
 	wg.Wait()
+	close(resultsChan)
 	for body := range resultsChan {
 		fmt.Println(len(resultsChan), cap(resultsChan))
 		fmt.Println(count)
