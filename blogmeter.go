@@ -3,6 +3,7 @@ package blogmeter
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -11,6 +12,11 @@ import (
 	"github.com/grokify/html-strip-tags-go"
 	"mvdan.cc/xurls"
 )
+
+type result struct {
+	body    string
+	success bool
+}
 
 func hasPrice(body string) bool {
 	baseExp := `\s?\d+\.?\,?\d+`
@@ -52,17 +58,20 @@ func cleanStr(str *string) {
 	*str = strings.Replace(*str, "\t", "", -1)
 }
 
-func getBody(url string, result chan string, wg *sync.WaitGroup) {
+func getBody(url string, resultChan chan result, wg *sync.WaitGroup) {
 	resp, err := http.Get(url)
-	var output string
+	var res result
 	if err != nil {
-		output = ""
+		fmt.Println(err)
+		res.body = ""
+		res.success = false
 	} else {
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
-		output = string(body)
+		res.body = string(body)
+		res.success = true
 	}
-	result <- output
+	resultChan <- res
 	wg.Done()
 }
 
@@ -74,7 +83,7 @@ func resolveUrls(urls []string) int {
 	var count = 0
 	uniqueUrls := uniqueSlice(urls)
 	var wg sync.WaitGroup
-	resultsChan := make(chan string, len(urls))
+	resultsChan := make(chan result, len(urls))
 	for _, url := range uniqueUrls {
 		fmt.Println(url)
 		wg.Add(1)
@@ -82,8 +91,8 @@ func resolveUrls(urls []string) int {
 	}
 	wg.Wait()
 	close(resultsChan)
-	for body := range resultsChan {
-		if hasPrice(body) {
+	for res := range resultsChan {
+		if hasPrice(res.body) {
 			count++
 		}
 	}
@@ -91,12 +100,16 @@ func resolveUrls(urls []string) int {
 }
 
 func RateBlog(url string) (int, int) {
-	result := make(chan string, 1)
+	resultChan := make(chan result, 1)
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go getBody(url, result, &wg)
+	go getBody(url, resultChan, &wg)
 	wg.Wait()
-	str := <-result
+	res := <-resultChan
+	if !res.success {
+		log.Fatal("Seems like the url is not available, try another one")
+	}
+	str := res.body
 	urls := extractUrls(str)
 	count := resolveUrls(urls)
 	cleanStr(&str)
