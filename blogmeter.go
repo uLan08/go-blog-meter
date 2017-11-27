@@ -45,18 +45,18 @@ func uniqueSlice(slc []string) []string {
 	return copy
 }
 
-func CleanStr(str *string) {
+func cleanStr(str *string) {
 	re := regexp.MustCompile(`\r?\n`)
 	*str = strip.StripTags(*str)
 	*str = re.ReplaceAllString(strings.Replace(*str, "&nbsp;", "", -1), "")
 	*str = strings.Replace(*str, "\t", "", -1)
 }
 
-func GetBody(url string, result chan string, wg *sync.WaitGroup) {
+func getBody(url string, result chan string, wg *sync.WaitGroup) {
 	resp, err := http.Get(url)
 	var output string
 	if err != nil {
-		output = " "
+		output = ""
 	} else {
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
@@ -66,11 +66,11 @@ func GetBody(url string, result chan string, wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func ExtractUrls(str string) []string {
+func extractUrls(str string) []string {
 	return xurls.Relaxed().FindAllString(str, -1)
 }
 
-func ResolveUrls(urls []string) int {
+func resolveUrls(urls []string) int {
 	var count = 0
 	uniqueUrls := uniqueSlice(urls)
 	var wg sync.WaitGroup
@@ -78,7 +78,7 @@ func ResolveUrls(urls []string) int {
 	for _, url := range uniqueUrls {
 		fmt.Println(url)
 		wg.Add(1)
-		go GetBody(url, resultsChan, &wg)
+		go getBody(url, resultsChan, &wg)
 	}
 	wg.Wait()
 	close(resultsChan)
@@ -88,4 +88,18 @@ func ResolveUrls(urls []string) int {
 		}
 	}
 	return count
+}
+
+func RateBlog(url string) (int, int) {
+	result := make(chan string, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go getBody(url, result, &wg)
+	wg.Wait()
+	str := <-result
+	urls := extractUrls(str)
+	count := resolveUrls(urls)
+	cleanStr(&str)
+	words := strings.Split(str, " ")
+	return len(words), count
 }
