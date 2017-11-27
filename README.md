@@ -6,8 +6,9 @@ The criteria is simple, if the blog has less than 1000 words and has 2 or more p
 
 ### TODO
 - ~~Create function that checks the contents of the links~~
-- Separate functions into their own relative files
+- ~~Separate functions into their own relative files~~
 - Clean out missed html tag/s
 - Better word counter
 - Make as command line tool
+- Handle request errors beautifully
 
