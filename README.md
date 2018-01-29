@@ -11,4 +11,5 @@ The criteria is simple, if the blog has less than 1000 words and has 2 or more p
 - Better word counter
 - Make as command line tool
 - Handle request errors beautifully
+- Add tests
 
