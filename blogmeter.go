@@ -59,7 +59,7 @@ func cleanStr(str *string) {
 	*str = strings.Replace(*str, "\t", "", -1)
 }
 
-func getBody(url string, resultChan chan result, wg *sync.WaitGroup) {
+func getBody(url string) result {
 	resp, err := http.Get(url)
 	var res result
 	if err != nil {
@@ -73,8 +73,7 @@ func getBody(url string, resultChan chan result, wg *sync.WaitGroup) {
 		res.success = true
 	}
 	res.url = url
-	resultChan <- res
-	wg.Done()
+	return res
 }
 
 func extractUrls(str string) []string {
@@ -88,7 +87,11 @@ func resolveUrls(urls []string) int {
 	resultsChan := make(chan result, len(urls))
 	for _, url := range uniqueUrls {
 		wg.Add(1)
-		go getBody(url, resultsChan, &wg)
+		go func(url string) {
+			res := getBody(url)
+			resultsChan <- res
+			wg.Done()
+		}(url)
 	}
 	wg.Wait()
 	close(resultsChan)
@@ -101,13 +104,9 @@ func resolveUrls(urls []string) int {
 	return count
 }
 
+// RateBlog rates the given url
 func RateBlog(url string) (int, int) {
-	resultChan := make(chan result, 1)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go getBody(url, resultChan, &wg)
-	wg.Wait()
-	res := <-resultChan
+	res := getBody(url)
 	if !res.success {
 		log.Fatal("Seems like the url is not available, try another one")
 	}
