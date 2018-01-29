@@ -54,9 +54,11 @@ func uniqueSlice(slc []string) []string {
 
 func cleanStr(str *string) {
 	re := regexp.MustCompile(`\r?\n`)
+	tagRe := regexp.MustCompile(`\<.*\>`)
 	*str = strip.StripTags(*str)
 	*str = re.ReplaceAllString(strings.Replace(*str, "&nbsp;", "", -1), "")
 	*str = strings.Replace(*str, "\t", "", -1)
+	*str = tagRe.ReplaceAllString(*str, "")
 }
 
 func getBody(url string) result {
@@ -104,6 +106,18 @@ func resolveUrls(urls []string) int {
 	return count
 }
 
+func countWords(str string) int {
+	var count = 0
+	re := regexp.MustCompile(`[^\w]`)
+	text := strings.Split(str, " ")
+	for _, i := range text {
+		if !re.MatchString(i) {
+			count++
+		}
+	}
+	return count
+}
+
 // RateBlog rates the given url
 func RateBlog(url string) (int, int) {
 	res := getBody(url)
@@ -114,6 +128,6 @@ func RateBlog(url string) (int, int) {
 	urls := extractUrls(str)
 	count := resolveUrls(urls)
 	cleanStr(&str)
-	words := strings.Split(str, " ")
-	return len(words), count
+	words := countWords(str)
+	return words, count
 }
