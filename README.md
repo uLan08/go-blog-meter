@@ -7,8 +7,9 @@ The criteria is simple, if the blog has 1 or more affiliate links or less than 1
 ### TODO
 - ~~Create function that checks the contents of the links~~
 - ~~Separate functions into their own relative files~~
-- Clean out missed html tag/s
-- Better word counter
+- ~~Clean out missed html tag/s~~
+- ~~Better word counter~~
+- Better link counter
 - Make as command line tool
 - Handle request errors beautifully
 - Add tests
