@@ -16,6 +16,7 @@ import (
 type result struct {
 	body    string
 	success bool
+	url     string
 }
 
 func hasPrice(body string) bool {
@@ -71,6 +72,7 @@ func getBody(url string, resultChan chan result, wg *sync.WaitGroup) {
 		res.body = string(body)
 		res.success = true
 	}
+	res.url = url
 	resultChan <- res
 	wg.Done()
 }
@@ -85,7 +87,6 @@ func resolveUrls(urls []string) int {
 	var wg sync.WaitGroup
 	resultsChan := make(chan result, len(urls))
 	for _, url := range uniqueUrls {
-		fmt.Println(url)
 		wg.Add(1)
 		go getBody(url, resultsChan, &wg)
 	}
@@ -93,6 +94,7 @@ func resolveUrls(urls []string) int {
 	close(resultsChan)
 	for res := range resultsChan {
 		if hasPrice(res.body) {
+			fmt.Println(res.url)
 			count++
 		}
 	}
