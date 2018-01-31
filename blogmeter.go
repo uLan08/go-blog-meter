@@ -90,8 +90,7 @@ func resolveUrls(urls []string) int {
 	for _, url := range uniqueUrls {
 		wg.Add(1)
 		go func(url string) {
-			res := getBody(url)
-			resultsChan <- res
+			resultsChan <- getBody(url)
 			wg.Done()
 		}(url)
 	}
